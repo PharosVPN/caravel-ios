@@ -44,6 +44,20 @@ files already declare them — Xcode/automatic signing registers them):
 - **App Groups** → `group.org.pharosvpn.caravel`
 - **Keychain Sharing** → `org.pharosvpn.caravel.shared`
 
+> **Two one-time gotchas for a signed device / TestFlight build** (simulator
+> builds need neither — they're unsigned):
+>
+> 1. **The Team gets wiped on regen.** `project.yml` keeps `DEVELOPMENT_TEAM: ""`,
+>    so every `xcodegen` blanks the team in the (gitignored) `.xcodeproj`. The
+>    local project is generated with `DEVELOPMENT_TEAM = NJV3R6ZFF6`; **re-set it
+>    after any regen** (Xcode → Signing & Capabilities, or
+>    `sed -i '' 's/DEVELOPMENT_TEAM = "";/DEVELOPMENT_TEAM = NJV3R6ZFF6;/' app/Caravel.xcodeproj/project.pbxproj`).
+> 2. **The App Group must be registered once.** `xcodebuild`
+>    `-allowProvisioningUpdates` can create App IDs but **cannot create App
+>    Groups**. Open the project in Xcode → a target → **Signing & Capabilities**
+>    → **App Groups** → enable `group.org.pharosvpn.caravel` once. Until then a
+>    device/TestFlight build won't sign.
+
 ## 3. Link the Go engine (`Caravel.xcframework`)
 
 The shared engine is built in the **caravel** repo (not here):
@@ -88,6 +102,28 @@ The maroon-beacon AppIcon set is checked in. To regenerate from the SVG:
 (Do **not** rasterize the icon with `qlmanage` — it flattens transparency to
 white. The 1024 marketing icon is flattened to opaque RGB, as the App Store
 requires.)
+
+## Versioning & release
+
+Fleet-wide semver convention (same as `helm`/`node`/`relay`/`caravel`):
+
+- Repo-root **`VERSION`** (bare semver, e.g. `0.1.0`) is the source of truth.
+- **`scripts/bump-version.sh [major|minor|patch] [--tag]`** bumps it (asks if no
+  part given; `--tag` also makes a `vX.Y.Z` git tag).
+- `project.yml`'s `MARKETING_VERSION` mirrors `VERSION`; the release script passes
+  `MARKETING_VERSION=$(tr -d '[:space:]' < VERSION)` to `xcodebuild`.
+
+```sh
+./scripts/bump-version.sh minor      # 0.1.0 -> 0.2.0
+./scripts/release.sh                 # validate VERSION + signing prereqs, print TestFlight steps
+./scripts/release.sh --archive       # also run xcodebuild archive + export .ipa
+```
+
+iOS ships via **TestFlight / App Store**, *not* a downloadable artifact — there is
+**no GitHub release** for this repo. `scripts/release.sh` documents the archive →
+`-exportArchive` → TestFlight path and validates the signing prerequisites above.
+Pre-alpha: the engine facade isn't built yet and device signing is blocked on the
+App Group registration, so no device/TestFlight build has shipped.
 
 ## Layout
 

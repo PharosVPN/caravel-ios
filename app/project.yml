@@ -25,14 +25,27 @@ options:
 
 # IMPORTANT: set your Apple Developer Team here (or in Xcode → Signing &
 # Capabilities). Left blank intentionally — the project is otherwise sign-ready.
+#
+# WARNING: this is "" on purpose, but the LOCAL (gitignored) .xcodeproj is
+# generated with DEVELOPMENT_TEAM=NJV3R6ZFF6. A fresh `xcodegen` WIPES the team
+# back to "" — re-set it in Xcode (Signing & Capabilities) or with:
+#   /usr/libexec/PlistBuddy / sed back to NJV3R6ZFF6, or just set it in Xcode.
+# Also: a device/TestFlight signing build needs the App Group
+# group.org.pharosvpn.caravel registered ONCE via Xcode (xcodebuild's
+# auto-provisioning can create App IDs but NOT App Groups). See NOTES.md §5.
 settings:
   base:
-    DEVELOPMENT_TEAM: ""        # <-- set to your 10-char Apple Team ID
+    DEVELOPMENT_TEAM: ""        # <-- set to your 10-char Apple Team ID (regen wipes this)
     SWIFT_VERSION: "5.0"
     IPHONEOS_DEPLOYMENT_TARGET: "16.0"
     CODE_SIGN_STYLE: Automatic
     TARGETED_DEVICE_FAMILY: "1,2"   # iPhone + iPad
-    MARKETING_VERSION: "1.0"
+    # Marketing version mirrors the repo-root ./VERSION (fleet semver convention).
+    # Keep these in sync: the release/build script should pass
+    #   MARKETING_VERSION=$(tr -d '[:space:]' < VERSION)
+    # to xcodebuild so a build always uses the source-of-truth VERSION even if a
+    # fresh `xcodegen` here lags behind. Bump with scripts/bump-version.sh.
+    MARKETING_VERSION: "0.1.0"
     CURRENT_PROJECT_VERSION: "1"
     # The gomobile xcframework lives in ../Frameworks; link it when present.
     FRAMEWORK_SEARCH_PATHS:

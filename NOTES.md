@@ -91,12 +91,48 @@ is shown as `false` because we don't perform the TLS dial without the engine. On
 linked, `CoreControllerStatus` / `CoreReachable` drive these for real. Per
 `cloud-sync.md §7`, reachability is probed on **foreground**, not on a timer.
 
-## 5. Signing — Team required
+## 5. Signing — Team required + App Group must be registered
 
 `project.yml` sets `DEVELOPMENT_TEAM: ""`. NetworkExtension + App Groups +
 Keychain sharing **cannot be code-signed without a real Team**, so the app builds
 for the **simulator** un-signed (verified) but a **device** build needs the Team
 set and the App Group / NE capabilities provisioned. See `BUILD.md`.
+
+**Two human one-time steps before a signed device / TestFlight build will sign:**
+
+1. **Keep the Team set (`NJV3R6ZFF6`).** `project.yml` intentionally has
+   `DEVELOPMENT_TEAM: ""`, so a fresh `xcodegen` **wipes the team** out of the
+   (gitignored) `app/Caravel.xcodeproj`. After any `xcodegen` regen, re-set it —
+   in Xcode (Signing & Capabilities, Automatic) or with:
+   ```sh
+   cd app && sed -i '' 's/DEVELOPMENT_TEAM = "";/DEVELOPMENT_TEAM = NJV3R6ZFF6;/' \
+     Caravel.xcodeproj/project.pbxproj   # then verify both targets
+   ```
+2. **Register the App Group `group.org.pharosvpn.caravel` once.** `xcodebuild`'s
+   auto-provisioning (`-allowProvisioningUpdates`) can create the App **IDs** but
+   **cannot create App Groups**. Open `app/Caravel.xcodeproj` in Xcode → select a
+   target → **Signing & Capabilities** → **App Groups** → add/enable
+   `group.org.pharosvpn.caravel` (this registers it on the Apple account). Until
+   then, a **simulator** build works (no signing) but a **device / TestFlight**
+   build fails to sign with a missing-App-Group provisioning error.
+
+Once both are done, archive + export for TestFlight with `scripts/release.sh`
+(it validates these prerequisites and prints the `xcodebuild archive` /
+`-exportArchive` commands). There is **no GitHub-release artifact** for iOS.
+
+## 7. Versioning (fleet semver convention)
+
+This repo follows the fleet-wide convention used by `helm`/`node`/`relay`/`caravel`:
+
+- Repo-root `VERSION` (bare semver, e.g. `0.1.0`) is the source of truth.
+- `scripts/bump-version.sh [major|minor|patch] [--tag]` bumps it (asks if no part
+  is given; `--tag` also creates `vX.Y.Z`).
+- `project.yml`'s `MARKETING_VERSION` mirrors `VERSION` (currently `0.1.0`); the
+  release/build script passes `MARKETING_VERSION=$(tr -d '[:space:]' < VERSION)`
+  to `xcodebuild` so the build always uses the source-of-truth version.
+- `scripts/release.sh` documents the TestFlight path. Pre-alpha (`0.1.0`): the
+  engine facade isn't built yet (§1) and device signing is blocked on the App
+  Group registration (§5), so no device/TestFlight build has shipped.
 
 ## 6. Cosmetics / future parity
 
