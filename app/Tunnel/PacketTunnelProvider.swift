@@ -38,17 +38,24 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
             return
         }
 
-        // Configure the utun. AllowedIPs route everything through the tunnel; the
-        // engine handles the real per-node allowed-IPs internally. We use a
-        // link-local-ish address; the engine binds the real tunnel address from the
-        // profile. (The Go side reads/writes packets on the fd we pass it.)
+        // The engine resolves the profile's real network parameters (tunnel
+        // address / mtu / dns); the utun is configured from those, not guesses.
+        // Full-tunnel default route — the engine enforces the per-node AllowedIPs.
+        let params = CaravelCore.prepareJSON(bundleName: bundle, profileName: profile, protoPref: proto)
+            .flatMap { $0.data(using: .utf8) }
+            .flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }
+        let address = (params?["address"] as? String)
+            .map { String($0.split(separator: "/").first ?? "") }
+            .flatMap { $0.isEmpty ? nil : $0 } ?? "10.86.0.2"
+        let mtu = (params?["mtu"] as? Int) ?? 1420
+        let dns = (params?["dns"] as? [String]) ?? ["1.1.1.1"]
+
         let settings = NEPacketTunnelNetworkSettings(tunnelRemoteAddress: "127.0.0.1")
-        let ipv4 = NEIPv4Settings(addresses: ["10.86.0.2"], subnetMasks: ["255.255.255.255"])
+        let ipv4 = NEIPv4Settings(addresses: [address], subnetMasks: ["255.255.255.255"])
         ipv4.includedRoutes = [NEIPv4Route.default()]
         settings.ipv4Settings = ipv4
-        settings.mtu = 1420
-        // Public resolvers so DNS works inside the tunnel by default.
-        settings.dnsSettings = NEDNSSettings(servers: ["1.1.1.1", "8.8.8.8"])
+        settings.mtu = NSNumber(value: mtu)
+        settings.dnsSettings = NEDNSSettings(servers: dns)
 
         setTunnelNetworkSettings(settings) { [weak self] error in
             guard let self else { return }

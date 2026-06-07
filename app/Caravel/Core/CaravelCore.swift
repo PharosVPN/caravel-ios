@@ -172,6 +172,20 @@ enum CaravelCore {
         #endif
     }
 
+    // prepare returns the engine's resolved network parameters for a profile as
+    // JSON {address,mtu,dns,routes,endpoint,proto} — the PacketTunnel extension
+    // configures NEPacketTunnelNetworkSettings from these before connect. nil
+    // when the engine isn't linked (the caller falls back to defaults).
+    static func prepareJSON(bundleName: String, profileName: String, protoPref: String) -> String? {
+        #if canImport(Caravel)
+        var err: NSError?
+        let json = CorePrepare(bundleName, profileName, protoPref, &err)
+        return err == nil ? json : nil
+        #else
+        return nil
+        #endif
+    }
+
     // connect brings up the tunnel for a named profile over the provided utun file
     // descriptor (the PacketTunnel extension's packet flow). protoPref is
     // "auto" | "amneziawg" | "xray". Returns a live Session. Engine-only.

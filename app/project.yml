@@ -66,10 +66,9 @@ targets:
       - target: Tunnel
         embed: true
       - sdk: NetworkExtension.framework
-      # The gomobile engine (Caravel.xcframework) is linked by scripts/link-core.sh
-      # AFTER it is built, because Xcode errors on a missing XCFramework file at
-      # build time. Until then the app builds against CaravelCore's no-engine
-      # fallback (#if canImport(Caravel) is false). See BUILD.md / NOTES.md.
+      - framework: ../Frameworks/Caravel.xcframework
+        embed: true
+        codeSign: true
 
   # ──────────────── PacketTunnel extension ────────────────
   Tunnel:
@@ -97,5 +96,5 @@ targets:
         CODE_SIGN_ENTITLEMENTS: Tunnel/Tunnel.entitlements
     dependencies:
       - sdk: NetworkExtension.framework
-      # Caravel.xcframework is linked by scripts/link-core.sh once built (the app
-      # target embeds it; this target just links). See BUILD.md / NOTES.md.
+      - framework: ../Frameworks/Caravel.xcframework
+        embed: false
