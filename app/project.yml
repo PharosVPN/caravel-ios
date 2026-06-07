@@ -23,19 +23,16 @@ options:
   createIntermediateGroups: true
   groupSortPosition: top
 
-# IMPORTANT: set your Apple Developer Team here (or in Xcode → Signing &
-# Capabilities). Left blank intentionally — the project is otherwise sign-ready.
-#
-# WARNING: this is "" on purpose, but the LOCAL (gitignored) .xcodeproj is
-# generated with DEVELOPMENT_TEAM=NJV3R6ZFF6. A fresh `xcodegen` WIPES the team
-# back to "" — re-set it in Xcode (Signing & Capabilities) or with:
-#   /usr/libexec/PlistBuddy / sed back to NJV3R6ZFF6, or just set it in Xcode.
-# Also: a device/TestFlight signing build needs the App Group
+# Apple Developer Team. Set to the project owner's team so `xcodegen` regen no
+# longer wipes it (a Team ID is an opaque, non-secret identifier — it's embedded
+# in every signed build anyway; it is NOT your name). Fork? Change it to yours
+# (or override in Xcode → Signing & Capabilities).
+# Note: a device/TestFlight signing build also needs the App Group
 # group.org.pharosvpn.caravel registered ONCE via Xcode (xcodebuild's
 # auto-provisioning can create App IDs but NOT App Groups). See NOTES.md §5.
 settings:
   base:
-    DEVELOPMENT_TEAM: ""        # <-- set to your 10-char Apple Team ID (regen wipes this)
+    DEVELOPMENT_TEAM: "NJV3R6ZFF6"   # opaque Apple Team ID (not secret, not your name)
     SWIFT_VERSION: "5.0"
     IPHONEOS_DEPLOYMENT_TARGET: "16.0"
     CODE_SIGN_STYLE: Automatic
