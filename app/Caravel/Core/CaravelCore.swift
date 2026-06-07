@@ -141,9 +141,7 @@ enum CaravelCore {
     // a cloud bundle, or nil. reachable is a short TLS dial — informational only.
     static func controllerStatusJSON(bundleName: String) -> String? {
         #if canImport(Caravel)
-        var err: NSError?
-        let json = CoreControllerStatus(bundleName, &err)
-        return err == nil ? json : nil
+        return CoreControllerStatus(bundleName)
         #else
         return nil
         #endif
@@ -193,7 +191,7 @@ enum CaravelCore {
                         protoPref: String, tunFd: Int32) throws -> CaravelSession {
         #if canImport(Caravel)
         var err: NSError?
-        guard let s = CoreConnect(bundleName, profileName, protoPref, tunFd, &err) else {
+        guard let s = CoreConnect(bundleName, profileName, protoPref, Int(tunFd), &err) else {
             throw CoreError(message: err?.localizedDescription ?? "engine failed to start the tunnel")
         }
         return CaravelSession(s)
