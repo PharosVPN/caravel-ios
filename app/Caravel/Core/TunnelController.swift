@@ -48,13 +48,21 @@ final class TunnelController: ObservableObject {
         }
     }
 
-    // observeStatus subscribes to NEVPNStatusDidChange for the live connection.
+    // observeStatus subscribes to NEVPNStatusDidChange. We observe ALL such
+    // notifications (object: nil) rather than binding to one connection object, so
+    // a manager (re)created/saved during connect() is still tracked — the bug of
+    // missing status updates after the first save. Each tick re-reads the manager's
+    // current status.
     private func observeStatus() {
-        guard let conn = tunnel.connectionObject else { return }
+        guard statusObserver == nil else { return }
         statusObserver = NotificationCenter.default
-            .publisher(for: .NEVPNStatusDidChange, object: conn)
-            .sink { [weak self] _ in
-                Task { @MainActor in self?.apply(neStatus: conn.status) }
+            .publisher(for: .NEVPNStatusDidChange)
+            .sink { [weak self] note in
+                guard let self else { return }
+                let conn = note.object as? NEVPNConnection
+                Task { @MainActor in
+                    self.apply(neStatus: conn?.status ?? self.tunnel.status)
+                }
             }
     }
 
@@ -337,12 +345,16 @@ final class TunnelController: ObservableObject {
     func connect() {
         guard let info = selectedInfo else { lastError = "no profile selected"; return }
         lastError = nil
+        status = .connecting // optimistic; NEVPNStatusDidChange takes over
         let bundle = info.bundle
         let pname = info.profileName
         let proto = self.proto
         Task {
             do {
                 try await tunnel.connect(bundle: bundle, profile: pname, proto: proto)
+                // The manager was (re)saved during connect — make sure we're seeded
+                // with its current status (the observer catches later transitions).
+                apply(neStatus: tunnel.status)
             } catch {
                 self.lastError = "connect failed: \(error.localizedDescription)"
                 self.status = .disconnected
