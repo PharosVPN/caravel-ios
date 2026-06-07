@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- This target IS the packet-tunnel provider. -->
+	<key>com.apple.developer.networking.networkextension</key>
+	<array>
+		<string>packet-tunnel-provider</string>
+	</array>
+	<!-- Same App Group as the app: read the profile store, write live state. -->
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.org.pharosvpn.caravel</string>
+	</array>
+	<!-- Same Keychain group as the app: read the account passphrase if needed. -->
+	<key>keychain-access-groups</key>
+	<array>
+		<string>$(AppIdentifierPrefix)org.pharosvpn.caravel.shared</string>
+	</array>
+</dict>
+</plist>

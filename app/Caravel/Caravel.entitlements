@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Drive a NEPacketTunnelProvider (start/stop the VPN). -->
+	<key>com.apple.developer.networking.networkextension</key>
+	<array>
+		<string>packet-tunnel-provider</string>
+	</array>
+	<!-- Shared App Group: the profile store + live state file the app and the
+	     tunnel extension both read/write. -->
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.org.pharosvpn.caravel</string>
+	</array>
+	<!-- Shared Keychain group: the account passphrase, readable by the extension.
+	     $(AppIdentifierPrefix) is the team prefix Xcode fills in at sign time. -->
+	<key>keychain-access-groups</key>
+	<array>
+		<string>$(AppIdentifierPrefix)org.pharosvpn.caravel.shared</string>
+	</array>
+</dict>
+</plist>

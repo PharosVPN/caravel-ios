@@ -1,0 +1,101 @@
+# XcodeGen project spec for the PharosVPN iOS app (Caravel).
+#
+# Generate the .xcodeproj with:   cd app && xcodegen   (brew install xcodegen)
+# Then open Caravel.xcodeproj in Xcode, set your Team (DEVELOPMENT_TEAM), and
+# build to a device. See ../BUILD.md.
+#
+# Two targets:
+#   Caravel  — the SwiftUI app (UI, profile store, cloud sync, the map).
+#   Tunnel   — the NEPacketTunnelProvider network extension that runs the Go
+#              engine over the utun. Embedded into the app.
+#
+# The shared Go engine ships as Caravel.xcframework (built by the human in the
+# caravel repo: `./build-bindings.sh ios` → caravel/dist/Caravel.xcframework, then
+# copied to ./Frameworks/Caravel.xcframework). It is linked only when present, so
+# this project generates + builds the UI/extension even before the framework lands
+# (CaravelCore guards every engine call with #if canImport(Caravel)). See NOTES.md.
+name: Caravel
+
+options:
+  bundleIdPrefix: org.pharosvpn
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+
+# IMPORTANT: set your Apple Developer Team here (or in Xcode → Signing &
+# Capabilities). Left blank intentionally — the project is otherwise sign-ready.
+settings:
+  base:
+    DEVELOPMENT_TEAM: ""        # <-- set to your 10-char Apple Team ID
+    SWIFT_VERSION: "5.0"
+    IPHONEOS_DEPLOYMENT_TARGET: "16.0"
+    CODE_SIGN_STYLE: Automatic
+    TARGETED_DEVICE_FAMILY: "1,2"   # iPhone + iPad
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    # The gomobile xcframework lives in ../Frameworks; link it when present.
+    FRAMEWORK_SEARCH_PATHS:
+      - "$(inherited)"
+      - "$(PROJECT_DIR)/../Frameworks"
+
+# Link the Go engine only if the framework has been dropped into ../Frameworks.
+# (xcodegen evaluates this at generate time; if the file is absent the app still
+# builds against CaravelCore's no-engine fallback.)
+packages: {}
+
+targets:
+  # ───────────────────────── App ─────────────────────────
+  Caravel:
+    type: application
+    platform: iOS
+    sources:
+      - path: Caravel
+        excludes:
+          - "**/.DS_Store"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: org.pharosvpn.caravel
+        PRODUCT_NAME: PharosVPN
+        INFOPLIST_FILE: Caravel/Info.plist
+        CODE_SIGN_ENTITLEMENTS: Caravel/Caravel.entitlements
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        ENABLE_PREVIEWS: YES
+    dependencies:
+      - target: Tunnel
+        embed: true
+      - sdk: NetworkExtension.framework
+      # The gomobile engine (Caravel.xcframework) is linked by scripts/link-core.sh
+      # AFTER it is built, because Xcode errors on a missing XCFramework file at
+      # build time. Until then the app builds against CaravelCore's no-engine
+      # fallback (#if canImport(Caravel) is false). See BUILD.md / NOTES.md.
+
+  # ──────────────── PacketTunnel extension ────────────────
+  Tunnel:
+    type: app-extension
+    platform: iOS
+    sources:
+      # The extension principal class…
+      - path: Tunnel
+        excludes:
+          - "**/.DS_Store"
+      # …plus the engine seam + the shared model/store it needs (compiled into the
+      # extension too; xcodegen lists the same files in both targets).
+      - path: Caravel/Core/CaravelCore.swift
+      - path: Caravel/Core/TunnelManager.swift
+      - path: Caravel/Shared
+      - path: Caravel/Model/Profiles.swift
+      - path: Caravel/Model/Regions.swift
+      - path: Caravel/Model/Keychain.swift
+      - path: Caravel/Model/TunnelState.swift
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: org.pharosvpn.caravel.tunnel
+        PRODUCT_NAME: Tunnel
+        INFOPLIST_FILE: Tunnel/Info.plist
+        CODE_SIGN_ENTITLEMENTS: Tunnel/Tunnel.entitlements
+    dependencies:
+      - sdk: NetworkExtension.framework
+      # Caravel.xcframework is linked by scripts/link-core.sh once built (the app
+      # target embeds it; this target just links). See BUILD.md / NOTES.md.

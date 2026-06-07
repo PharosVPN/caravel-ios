@@ -4,39 +4,60 @@
     <img src=".assets/logo.svg" alt="PharosVPN" width="120" height="120">
   </picture>
 </p>
+
 # caravel-ios
 
-PharosVPN mobile client — iOS implementation in Swift.
-
-> Part of [PharosVPN](https://github.com/PharosVPN) — see [`docs/BUILD.md`](https://github.com/PharosVPN/docs/blob/main/BUILD.md) for the platform roadmap.
+PharosVPN client for iOS — a SwiftUI app + a `NEPacketTunnelProvider` network
+extension that runs the shared Go engine (gomobile `Caravel.xcframework`). It
+mirrors the macOS client ([caravel-mac]) feature-for-feature: import & cloud
+sync, named profiles, AmneziaWG / XRay-REALITY, cascades, the controller card,
+live stats, and the signature offline world map.
 
 ## Architecture
 
-Shared Go core (via `gomobile`) + native SwiftUI.
+```
+SwiftUI app  ──(App Group: profile store + live state)──  PacketTunnel extension
+     │                                                            │
+     └──────────────── CaravelCore (the one engine seam) ─────────┘
+                                   │
+                       Caravel.xcframework (gomobile)
+                    caravel/go: profile · sync · deviceid · vp
+```
 
-- `go/` — shared core (VPN engine, profile store, gRPC sync, crypto) — *to be symlinked from coxswain repo or as a submodule*
-- `app/` — iOS app (SwiftUI, Keychain integration, Network Extension)
-- `Podfile` — CocoaPods dependencies (if using pods; otherwise SPM)
+- **App** — UI, the profile store, the cloud-sync flow, and the map.
+- **Tunnel extension** — obtains the utun fd and runs the userspace
+  AmneziaWG/XRay engine via `CaravelCore.connect(…, tunFd:)`.
+- **CaravelCore** — the single Swift file that talks to the gomobile engine
+  (guarded by `#if canImport(Caravel)` so the app builds before the framework
+  lands; see [`NOTES.md`](NOTES.md)).
 
-## Milestones (C1–C7)
+## Features (parity with caravel-mac)
 
-See [`docs/BUILD.md`](https://github.com/PharosVPN/docs/blob/main/BUILD.md) caravel section:
-- **C1:** Skeleton, validate gomobile architecture, VPN permission plumbing
-- **C2:** Local profile store + `.pharos` parsing
-- **C3:** VPN engine (AmneziaWG, then XRay) + protocol registry
-- **C4:** Sources (file import, QR, self-contained QR)
-- **C5:** Account sync (enrollment, gRPC, E2E decrypt, multi-device)
-- **C6:** MDM managed config + posture detection
-- **C7:** Role-gated admin subset
-
-## Status
-
-🚧 Pre-alpha — scaffold. See [`docs/DESIGN.md`](https://github.com/PharosVPN/docs/blob/main/DESIGN.md) §3 for the platform architecture.
+- Import a `.pharos` profile (document picker) **and** cloud sync (sign in with a
+  `.pharosid` + account passphrase, stored in the Keychain).
+- Sync = replace-all; one-tap **Sync now**; **Log out** clears the session and
+  removes all cloud profiles.
+- Named profiles; protocol picker for `both` profiles (Auto / AmneziaWG / XRay).
+- Cascade egress path display.
+- The **map**: "You" + node pins + a controller pin, dashed data-plane line and
+  solid control-plane line (offline `land.geojson`, pinch/drag).
+- Controller card: reachability dot, "Last synced … · via <relay>", Sync now,
+  Log out.
+- Live protocol + rx/tx indicator while connected.
 
 ## Build
 
-(To be filled in once C1 architecture is locked.)
+See [`BUILD.md`](BUILD.md). In short:
+
+```sh
+cd app && xcodegen          # generate the project
+# set your Apple Team in project.yml or Xcode (Signing & Capabilities)
+../scripts/link-core.sh     # link Caravel.xcframework (once built in ../caravel)
+# open Caravel.xcodeproj, build to a device
+```
 
 ## License
 
 Apache-2.0. Contributions under the DCO (`git commit -s`).
+
+[caravel-mac]: https://github.com/PharosVPN/caravel-mac

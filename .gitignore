@@ -1,0 +1,18 @@
+.DS_Store
+*.test
+
+# Imported test profiles / device identities (hold private keys)
+*.pharos
+*.pharosid
+
+# XcodeGen-generated project + build output (regenerate with `xcodegen`)
+/app/Caravel.xcodeproj/
+/app/build/
+/build/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+
+# The gomobile engine is a rebuildable artifact (built in the caravel repo,
+# linked via scripts/link-core.sh) — don't commit it.
+/Frameworks/Caravel.xcframework/
