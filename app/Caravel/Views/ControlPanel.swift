@@ -11,6 +11,7 @@ struct ControlPanel: View {
     @EnvironmentObject var tunnel: TunnelController
     @Binding var showImporter: Bool
     var onLogin: () -> Void
+    var onEnroll: () -> Void
 
     private let teal = ContentView.teal
     private var connected: Bool { tunnel.status == .connected }
@@ -85,6 +86,9 @@ struct ControlPanel: View {
                     .accessibilityLabel("Add a .pharos file")
                 Button { onLogin() } label: { Image(systemName: "icloud.and.arrow.down") }
                     .accessibilityLabel("Get from controller (account sync)")
+                    .disabled(busy)
+                Button { onEnroll() } label: { Image(systemName: "qrcode.viewfinder") }
+                    .accessibilityLabel("Enroll a device with a join link")
                     .disabled(busy)
             }
             .foregroundStyle(teal)

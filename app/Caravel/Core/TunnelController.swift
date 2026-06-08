@@ -224,6 +224,43 @@ final class TunnelController: ObservableObject {
         }
     }
 
+    // enrollFromLink redeems a `pharosvpn://enroll?...` join link WITHOUT a
+    // passphrase: the engine generates this device's keys on-device, claims the
+    // one-time ticket through the relay, and stores the per-device-sealed profile
+    // cloud-marked. Mirrors syncFromController; there is no passphrase to keep.
+    func enrollFromLink(link: String, deviceName: String) {
+        busy = true
+        lastError = nil
+        Task.detached {
+            let result = Self.runEnroll(link: link, deviceName: deviceName)
+            await MainActor.run { [weak self] in
+                guard let self else { return }
+                self.busy = false
+                switch result {
+                case .failure(let err):
+                    self.lastError = "enrollment failed: \(err)"
+                case .success(let name):
+                    self.needsLogin = false
+                    self.reloadProfiles()
+                    if let first = self.profiles.first(where: { $0.bundle == name }) {
+                        self.selectedProfile = first.id
+                    }
+                    self.refreshController()
+                    self.lastError = nil
+                }
+            }
+        }
+    }
+
+    nonisolated private static func runEnroll(link: String, deviceName: String) -> SyncResult {
+        do {
+            let name = try CaravelCore.enroll(link: link, deviceName: deviceName, platform: "iOS")
+            return .success(name)
+        } catch {
+            return .failure(error.localizedDescription)
+        }
+    }
+
     // logout disconnects a live cloud profile, purges every cloud bundle via the
     // engine (replace-all's logout half), and forgets the passphrase.
     func logout() {

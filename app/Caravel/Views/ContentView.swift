@@ -19,6 +19,7 @@ struct ContentView: View {
 
     @State private var showImporter = false
     @State private var showSync = false
+    @State private var showEnroll = false
     @State private var pendingPharosid: Data?
     @State private var pendingPharosidName = ""
 
@@ -32,7 +33,8 @@ struct ContentView: View {
                 header
                 Spacer(minLength: 0)
                 ControlPanel(showImporter: $showImporter,
-                             onLogin: openLoginPicker)
+                             onLogin: openLoginPicker,
+                             onEnroll: { showEnroll = true })
                     .frame(maxWidth: 560)
             }
         }
@@ -53,6 +55,13 @@ struct ContentView: View {
                 if let data = pendingPharosid {
                     tunnel.syncFromController(pharosidData: data, email: email, password: pass)
                 }
+            }
+            .presentationDetents([.medium])
+        }
+        // Enrollment: paste a join link (no passphrase) → core.enroll.
+        .sheet(isPresented: $showEnroll) {
+            EnrollSheet { link, name in
+                tunnel.enrollFromLink(link: link, deviceName: name)
             }
             .presentationDetents([.medium])
         }

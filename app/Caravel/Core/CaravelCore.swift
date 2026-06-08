@@ -13,6 +13,7 @@ import Foundation
 //   Core.initStore(dir)
 //   Core.importBundle(path) -> name
 //   Core.syncAndStore(pharosidData, email, pass) -> name   // login/sync; REPLACE-ALL
+//   Core.enroll(link, deviceName, platform) -> name        // join-link; no passphrase
 //   Core.listProfiles() -> JSON                            // bundles → profiles[] (+control)
 //   Core.controllerStatus(bundleName) -> JSON              // {reachable,last_synced_at,relay,controller}
 //   Core.reachable(pharosidData, timeoutMs) -> Bool
@@ -123,6 +124,21 @@ enum CaravelCore {
         return name
         #else
         throw CoreError(message: "cloud sync needs the Caravel engine (link Caravel.xcframework — see BUILD.md)")
+        #endif
+    }
+
+    // enroll redeems a `pharosvpn://enroll?...` join link WITHOUT any passphrase:
+    // the engine generates the device's keys on-device, claims the one-time ticket
+    // through the relay (cert-less), assembles the `.pharosid`, and stores the
+    // per-device-sealed profile cloud-marked, like sync. Returns the bundle name.
+    static func enroll(link: String, deviceName: String, platform: String) throws -> String {
+        #if canImport(Caravel)
+        var err: NSError?
+        let name = CoreEnroll(link, deviceName, platform, &err)
+        if let err { throw CoreError(message: err.localizedDescription) }
+        return name
+        #else
+        throw CoreError(message: "enrollment needs the Caravel engine (link Caravel.xcframework — see BUILD.md)")
         #endif
     }
 
